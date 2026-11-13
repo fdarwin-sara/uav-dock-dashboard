@@ -5,12 +5,15 @@ class MetricCard(QFrame):
     def __init__(self, title: str, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("card")
+        self.setProperty("metric", True)
         self.value = QLabel("--")
         self.value.setObjectName("metric")
         self.detail = QLabel("")
         self.detail.setObjectName("muted")
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel(title.upper()))
+        title_label = QLabel(title.upper())
+        title_label.setObjectName("metricTitle")
+        layout.addWidget(title_label)
         layout.addWidget(self.value)
         layout.addWidget(self.detail)
 

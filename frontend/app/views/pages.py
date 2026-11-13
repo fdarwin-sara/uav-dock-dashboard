@@ -98,11 +98,11 @@ class DashboardPage(QWidget):
         telemetry, telemetry_layout = panel("Telemetry Monitoring")
         self.telemetry_text = QLabel()
         self.chart = pg.PlotWidget()
-        self.chart.setBackground("#132530")
+        self.chart.setBackground("#102334")
         self.chart.showGrid(x=True, y=True, alpha=0.2)
         self.chart.setLabel("left", "Altitude", units="m")
         self.chart.setLabel("bottom", "Samples")
-        self.altitude_curve = self.chart.plot(pen=pg.mkPen("#62e6c6", width=2))
+        self.altitude_curve = self.chart.plot(pen=pg.mkPen("#35D6C5", width=2))
         self.altitudes: list[float] = []
         telemetry_layout.addWidget(self.telemetry_text)
         telemetry_layout.addWidget(self.chart)
@@ -154,8 +154,8 @@ class TelemetryPage(QWidget):
         layout.addLayout(cards)
 
         charts = QHBoxLayout()
-        self.altitude_plot = self._plot("Altitude", "m", "#62e6c6")
-        self.voltage_plot = self._plot("Voltage", "V", "#f0b35b")
+        self.altitude_plot = self._plot("Altitude", "m", "#35D6C5")
+        self.voltage_plot = self._plot("Voltage", "V", "#F5B942")
         charts.addWidget(self.altitude_plot["widget"])
         charts.addWidget(self.voltage_plot["widget"])
         layout.addLayout(charts, 3)
@@ -174,7 +174,7 @@ class TelemetryPage(QWidget):
     def _plot(label: str, unit: str, color: str) -> dict:
         frame, layout = panel(f"{label} trend")
         plot = pg.PlotWidget()
-        plot.setBackground("#132530")
+        plot.setBackground("#102334")
         plot.showGrid(x=True, y=True, alpha=0.2)
         plot.setLabel("left", label, units=unit)
         plot.setLabel("bottom", "Samples")
@@ -214,6 +214,8 @@ class MissionsPage(QWidget):
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
         current_layout.addWidget(self.mission_text)
+        self.mission_status = styled_label("ACTIVE", "statusChip")
+        current_layout.addWidget(self.mission_status, 0, Qt.AlignLeft)
         current_layout.addWidget(self.progress)
         timeline = QHBoxLayout()
         timeline.setSpacing(4)
@@ -222,7 +224,7 @@ class MissionsPage(QWidget):
             label = QLabel(phase)
             label.setAlignment(Qt.AlignCenter)
             label.setMinimumHeight(42)
-            label.setStyleSheet("background: #20343d; border-radius: 5px; padding: 8px;")
+            label.setStyleSheet("background: #1A3446; color: #9DB2C7; border-radius: 5px; padding: 8px;")
             self.timeline_labels.append(label)
             timeline.addWidget(label, 1)
         current_layout.addLayout(timeline)
@@ -239,6 +241,7 @@ class MissionsPage(QWidget):
 
     def update_snapshot(self, snapshot) -> None:
         mission = snapshot.mission
+        self.mission_status.setText(mission.state.upper())
         self.mission_text.setText(
             f"<b>{mission.mission_id}</b>  •  {mission.state}<br>"
             f"Current stage: {mission.phase.value}"
@@ -246,8 +249,15 @@ class MissionsPage(QWidget):
         self.progress.setValue(round(mission.progress_percent))
         active_index = min(len(self._phases) - 1, round(mission.progress_percent / 20))
         for index, label in enumerate(self.timeline_labels):
-            color = "#245b58" if index <= active_index else "#20343d"
-            label.setStyleSheet(f"background: {color}; border-radius: 5px; padding: 8px;")
+            if index < active_index:
+                background, foreground = "#174B50", "#9FE9DC"
+            elif index == active_index:
+                background, foreground = "#35D6C5", "#07111B"
+            else:
+                background, foreground = "#1A3446", "#9DB2C7"
+            label.setStyleSheet(
+                f"background: {background}; color: {foreground}; border-radius: 5px; padding: 8px;"
+            )
         self.details.setText(
             f"Elapsed time: {mission.elapsed_seconds} s (simulated)\n"
             f"Communication: {mission.communication}\n"
@@ -273,7 +283,9 @@ class DockPage(QWidget):
         info_panel, info_layout = panel("Verification & recent events")
         self.info = QLabel()
         self.info.setWordWrap(True)
+        self.verification_badge = styled_label("VERIFIED", "statusChip")
         self.events = QListWidget()
+        info_layout.addWidget(self.verification_badge, 0, Qt.AlignLeft)
         info_layout.addWidget(self.info)
         info_layout.addWidget(self.events)
         body = QHBoxLayout()
@@ -290,6 +302,7 @@ class DockPage(QWidget):
         self.status_cards[2].update_value("PRESENT" if dock.battery_present else "ABSENT", "battery bay")
         self.status_cards[3].update_value(dock.mechanism.value, "mechanism state")
         self.visual.update_state(snapshot.uav.altitude_m, dock.uav_present)
+        self.verification_badge.setText(dock.verification.upper())
         self.info.setText(f"<b>Verification</b><br>{dock.verification}<br><br>"
                           f"<b>Last update</b><br>{snapshot.mission.updated_at.astimezone().strftime('%H:%M:%S')}")
         if self.events.count() == 0 or self.events.item(0).text() != "Dock telemetry synchronized":
@@ -326,7 +339,7 @@ class AlertsPage(QWidget):
         selected = self.filter.currentText()
         alerts = [a for a in self._alerts if selected == "All severities" or a.severity.value == selected]
         self.table.setRowCount(len(alerts))
-        colors = {Severity.INFO: "#62e6c6", Severity.WARNING: "#f0b35b", Severity.CRITICAL: "#ed6a70"}
+        colors = {Severity.INFO: "#35D6C5", Severity.WARNING: "#F5B942", Severity.CRITICAL: "#FF5D73"}
         for row, alert in enumerate(alerts):
             values = (alert.severity.value, alert.source, alert.message,
                       alert.timestamp.astimezone().strftime("%Y-%m-%d %H:%M:%S"))
