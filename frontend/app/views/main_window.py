@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from app.core.config import APP_NAME, APP_SUBTITLE, APP_VERSION
 from app.viewmodels.dashboard_viewmodel import DashboardViewModel
@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(sidebar)
         layout.addWidget(self.stack, 1)
         self.setCentralWidget(container)
+        self.stack.setCurrentIndex(0)
         view_model.start()
 
     def _sidebar(self) -> QFrame:
@@ -41,10 +42,14 @@ class MainWindow(QMainWindow):
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
         layout.addSpacing(20)
+        self.nav_group = QButtonGroup(sidebar)
+        self.nav_group.setExclusive(True)
         for index, name in enumerate(("Overview", "UAV Telemetry", "Missions", "Dock Station", "Alerts", "History")):
             button = QPushButton(name)
+            button.setObjectName("navButton")
             button.setCheckable(True)
-            button.clicked.connect(lambda checked=False, i=index: self.stack.setCurrentIndex(i))
+            button.clicked.connect(lambda checked=False, i=index: self._select_page(i))
+            self.nav_group.addButton(button, index)
             layout.addWidget(button)
             if index == 0:
                 button.setChecked(True)
@@ -52,6 +57,12 @@ class MainWindow(QMainWindow):
         layout.addWidget(QLabel("●  CONNECTED  •  SIMULATION"))
         layout.addWidget(QLabel(f"Version {APP_VERSION}\nINTINAUTA / PachaLab"))
         return sidebar
+
+    def _select_page(self, index: int) -> None:
+        self.stack.setCurrentIndex(index)
+        button = self.nav_group.button(index)
+        if button is not None:
+            button.setChecked(True)
 
     def closeEvent(self, event) -> None:
         self.view_model.stop()
